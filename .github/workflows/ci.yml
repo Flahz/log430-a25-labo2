@@ -80,12 +80,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Test network connectivity
-        run: |
-          echo "Testing connectivity to VM..."
-          ping -c 3 ${{ vars.VM_HOST }} || echo "Ping failed"
-          nc -zv ${{ vars.VM_HOST }} ${{ vars.VM_PORT }} || echo "Port test failed"
-
       - name: Deploy to VM via SSH
         uses: appleboy/ssh-action@v1.0.0
         with:
