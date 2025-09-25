@@ -51,23 +51,17 @@ jobs:
             sleep 1
           done
 
-      - name: Créer utilisateur et base de données
-        run: |
-          mysql -h 127.0.0.1 -u root -proot -e "CREATE USER IF NOT EXISTS 'labo02'@'%' IDENTIFIED BY 'labo02';"
-          mysql -h 127.0.0.1 -u root -proot -e "GRANT ALL PRIVILEGES ON labo02_db.* TO 'labo02'@'%';"
-          mysql -h 127.0.0.1 -u root -proot -e "FLUSH PRIVILEGES;"
-
       - name: Initialiser la base de données
         run: |
-          mysql -h 127.0.0.1 -u labo02 -plabo02 labo02_db < db-init/init.sql
+          mysql -h 127.0.0.1 -u root -proot labo02_db < db-init/init.sql
 
       - name: Creer fichier .env
         run: |
           echo "DB_HOST=127.0.0.1" >> .env
           echo "DB_PORT=3306" >> .env
           echo "DB_NAME=labo02_db" >> .env
-          echo "DB_USER=labo02" >> .env
-          echo "DB_PASSWORD=labo02" >> .env
+          echo "DB_USER=root" >> .env
+          echo "DB_PASSWORD=root" >> .env
           echo "REDIS_HOST=127.0.0.1" >> .env
           echo "REDIS_PORT=6379" >> .env
           echo "REDIS_DB=0" >> .env
