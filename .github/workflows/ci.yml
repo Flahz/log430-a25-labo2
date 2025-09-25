@@ -73,42 +73,33 @@ jobs:
 
   deploy:
     needs: build
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Deploy to VM via SSH
-        uses: appleboy/ssh-action@v1.0.0
-        with:
-          host: ${{ vars.VM_HOST }}
-          username: ${{ vars.VM_USER }}
-          password: ${{ secrets.VM_PASSWORD }}
-          port: ${{ vars.VM_PORT }}
-          timeout: 60s
-          command_timeout: 300s
-          debug: true
-          script: |
-            # Naviguer vers le répertoire de l'application
-            cd ~/log430-a25-labo2
-            
-            # Mettre à jour le code depuis GitHub
-            git pull origin main
-            
-            # Arrêter les conteneurs existants
-            docker compose down
-            
-            # Reconstruire les images avec le nouveau code
-            docker compose build --no-cache
-            
-            # Redémarrer les services
-            docker compose up -d
-            
-            # Vérifier que tout fonctionne
-            sleep 5
-            docker compose ps
-            
-            echo "Deployment completed successfully!!!"
+      - name: Deploy locally
+        run: |
+          # Naviguer vers le répertoire de l'application
+          cd ~/log430-a25-labo2
+          
+          # Mettre à jour le code depuis GitHub
+          git pull origin main
+          
+          # Arrêter les conteneurs existants
+          docker compose down
+          
+          # Reconstruire les images avec le nouveau code
+          docker compose build --no-cache
+          
+          # Redémarrer les services
+          docker compose up -d
+          
+          # Vérifier que tout fonctionne
+          sleep 5
+          docker compose ps
+          
+          echo "Deployment completed successfully!!!"
             
