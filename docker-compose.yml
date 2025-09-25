@@ -1,6 +1,8 @@
 services:
   store_manager:
     build: .
+    ports:
+      - "5000:5000"
     volumes:
       - .:/app
     environment:
@@ -18,7 +20,7 @@ services:
       - redis
 
   mysql:
-    image: mysql:8
+    image: mysql:8.0-debian
     restart: unless-stopped
     environment:
       MYSQL_ROOT_PASSWORD: root
@@ -32,7 +34,7 @@ services:
       - ./db-init:/docker-entrypoint-initdb.d
 
   redis:
-    image: redis:7
+    image: redis:7-alpine
     restart: unless-stopped
     ports:
       - "6379:6379"

@@ -11,6 +11,7 @@ from views.user_view import show_user_form, register_user, remove_user
 from views.product_view import show_product_form, register_product, remove_product
 from views.order_view import show_order_form, register_order, remove_order
 from views.report_view import show_highest_spending_users, show_best_sellers
+from commands.write_order import sync_all_orders_to_redis
 
 class StoreManager(BaseHTTPRequestHandler):
     def do_GET(self):
@@ -93,6 +94,41 @@ class StoreManager(BaseHTTPRequestHandler):
         self.wfile.write(html.encode("utf-8"))
 
 if __name__ == "__main__":
+    import time
+    
+    # Attendre que MySQL soit complètement prêt
+    print("Waiting for MySQL to be ready...")
+    max_retries = 30
+    retry_count = 0
+    
+    while retry_count < max_retries:
+        try:
+            # Test de connexion à MySQL
+            from db import get_sqlalchemy_session
+            session = get_sqlalchemy_session()
+            session.execute('SELECT 1')
+            session.close()
+            print("MySQL is ready!")
+            break
+        except Exception as e:
+            retry_count += 1
+            print(f"Waiting for MySQL... (attempt {retry_count}/{max_retries})")
+            time.sleep(2)
+    
+    if retry_count >= max_retries:
+        print("ERROR: Could not connect to MySQL after maximum retries")
+        print("Application will start but may have database issues")
+    
+    # Synchronisation initiale des commandes de MySQL vers Redis au démarrage
+    print("Starting initial sync of orders from MySQL to Redis...")
+    try:
+        synced_orders = sync_all_orders_to_redis()
+        print(f"Initial sync completed: {synced_orders} orders available in Redis")
+    except Exception as e:
+        print(f"Warning: Initial sync failed - {e}")
+        print("Application will continue but Redis cache may be empty")
+    
+    # Démarrer le serveur HTTP
     server = HTTPServer(("0.0.0.0", 5000), StoreManager)
     print("Server running on http://0.0.0.0:5000")
     server.serve_forever()

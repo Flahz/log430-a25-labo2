@@ -98,32 +98,87 @@ def delete_order(order_id: int):
         session.close()
 
 def add_order_to_redis(order_id, user_id, total_amount, items):
-    """Insert order to Redis"""
+    """Insert order to Redis and update product counters"""
     r = get_redis_conn()
-    print(r)
+      
+    order_key = f"order:{order_id}"
+    order_data = {
+        'id': order_id,
+        'user_id': user_id,
+        'total_amount': str(total_amount),
+        'items_count': len(items)
+    }
+    
+    for i, item in enumerate(items):
+        order_data[f'item_{i}_product_id'] = str(item['product_id'])
+        order_data[f'item_{i}_quantity'] = str(item['quantity'])
+        
+        product_counter_key = f"product_sold:{item['product_id']}"
+        r.incrby(product_counter_key, int(item['quantity']))
+    
+    r.hset(order_key, mapping=order_data)
+    print(f"Order {order_id} added to Redis with product counters updated")
 
 def delete_order_from_redis(order_id):
-    """Delete order from Redis"""
-    pass
+    """Delete order from Redis and update product counters"""
+    r = get_redis_conn()
+    order_key = f"order:{order_id}"
+    
+    order_data = r.hgetall(order_key)
+    if order_data:
+        items_count = int(order_data.get('items_count', 0))
+        
+        for i in range(items_count):
+            product_id_key = f'item_{i}_product_id'
+            quantity_key = f'item_{i}_quantity'
+            
+            if product_id_key in order_data and quantity_key in order_data:
+                product_id = order_data[product_id_key]
+                quantity = int(order_data[quantity_key])
+                
+                product_counter_key = f"product_sold:{product_id}"
+                r.decrby(product_counter_key, quantity)
+                
+                if int(r.get(product_counter_key) or 0) <= 0:
+                    r.delete(product_counter_key)
+    
+    r.delete(order_key)
+    print(f"Order {order_id} deleted from Redis with product counters updated")
 
 def sync_all_orders_to_redis():
     """ Sync orders from MySQL to Redis """
-    # redis
     r = get_redis_conn()
-    orders_in_redis = r.keys(f"order:*")
+    orders_in_redis = r.keys("order:*")
+    
+    if len(orders_in_redis) > 0:
+        print(f'Redis already contains {len(orders_in_redis)} orders, no need to sync!')
+        return len(orders_in_redis)
+    
     rows_added = 0
+    session = get_sqlalchemy_session()
+    
     try:
-        if len(orders_in_redis) == 0:
-            # mysql
-            orders_from_mysql = []
-            for order in orders_from_mysql:
-                # TODO: terminez l'implementation
-                print(order)
-            rows_added = len(orders_from_mysql)
-        else:
-            print('Redis already contains orders, no need to sync!')
+        orders_from_mysql = get_orders_from_mysql()
+        print(f"Found {len(orders_from_mysql)} orders in MySQL to sync to Redis")
+        
+        for order in orders_from_mysql:
+            order_items = session.query(OrderItem).filter(OrderItem.order_id == order.id).all()
+            
+            items = []
+            for item in order_items:
+                items.append({
+                    'product_id': item.product_id,
+                    'quantity': item.quantity
+                })
+            
+            add_order_to_redis(order.id, order.user_id, order.total_amount, items)
+            rows_added += 1
+            
+        print(f"Successfully synced {rows_added} orders from MySQL to Redis")
+        
     except Exception as e:
-        print(e)
+        print(f"Error during sync: {e}")
         return 0
     finally:
-        return len(orders_in_redis) + rows_added
+        session.close()
+        return rows_added
