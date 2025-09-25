@@ -91,7 +91,7 @@ jobs:
         with:
           host: ${{ vars.VM_HOST }}
           username: ${{ vars.VM_USER }}
-          key: ${{ secrets.VM_SSH_KEY }}
+          password: ${{ secrets.VM_PASSWORD }}
           port: ${{ vars.VM_PORT }}
           timeout: 60s
           command_timeout: 300s
