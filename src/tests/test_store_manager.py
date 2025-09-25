@@ -40,4 +40,4 @@ def test_report_highest_spenders():
 def test_report_best_sellers():
     report_html = show_best_sellers()
     assert "<html" in report_html
-    assert "Les articles les plus vendus" in report_html
+    assert "Les articles les plus vendus" in report_html #a
