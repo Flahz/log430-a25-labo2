@@ -6,6 +6,24 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
+    services:
+      mysql:
+        image: mysql:8.0-debian
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: labo02_db
+          MYSQL_USER: labo02
+          MYSQL_PASSWORD: labo02
+        ports:
+          - 3306:3306
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: --health-cmd="redis-cli ping" --health-interval=10s --health-timeout=5s --health-retries=3
+
     steps:
       - name: Checkout dépot
         uses: actions/checkout@v3
@@ -31,3 +49,12 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install pytest
+
+      - name: Initialiser la base de données
+        run: |
+          mysql -h 127.0.0.1 -u labo02 -plabo02 labo02_db < db-init/init.sql
+
+      - name: Exécuter les tests
+        run: |
+          cd src
+          python -m pytest tests/test_store_manager.py -v
