@@ -87,6 +87,7 @@ jobs:
           username: ${{ vars.VM_USER }}
           key: ${{ secrets.VM_SSH_KEY }}
           port: ${{ vars.VM_PORT }}
+          debug: true
           script: |
             # Naviguer vers le répertoire de l'application
             cd ~/log430-a25-labo2
@@ -107,5 +108,5 @@ jobs:
             sleep 5
             docker compose ps
             
-            echo "✅ Deployment completed successfully!"
-            echo "🚀 Application deployed at: http://${{ vars.VM_HOST }}:5000"
+            echo "Deployment completed successfully!"
+            
